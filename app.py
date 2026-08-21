@@ -1,25 +1,20 @@
 # ==================================================================================
 #  FILE: app.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  This is the MAIN file of the whole project — it is the one you run to
-#  start the app (`streamlit run app.py`). It builds the web page the user
-#  sees and interacts with, and it is the "conductor" that calls each
-#  specialist agent (in the agents/ folder) in the right order:
+#  This is the main entry point, run with `streamlit run app.py`. It
+#  builds the page the user sees and acts as the conductor calling each
+#  agent in the right order:
 #
 #     Upload file -> Ingestion -> Domain (AI) -> Cleaning -> Transformation
 #     -> [user-triggered] ML Modelling -> NLP Q&A (AI) -> PDF Report
 #
-#  This file itself does NOT contain any data-science logic (no cleaning
-#  rules, no model training code) — all of that lives inside the agents/
-#  and utils/ folders. app.py's job is purely to: display the interface,
-#  remember what has happened so far (Streamlit's "session state"), and
-#  call the right agent at the right time when the user clicks a button.
+#  There's no actual data-science logic in this file, no cleaning rules,
+#  no model training code, all of that lives in agents/ and utils/. This
+#  file just displays things, remembers state between reruns, and calls
+#  the right agent when a button gets clicked.
 #
-#  READING TIP FOR NON-CODERS: search for the "# ---" banner comments
-#  below — each one marks the start of a distinct part of the screen
-#  (e.g. "TAB 1: Profile & Context"), so you can jump straight to the
-#  section you're interested in without reading the whole file top to bottom.
+#  Search for the "# ---" banner comments below to jump to a section
+#  (e.g. "TAB 1: Profile & Context") without reading top to bottom.
 # ==================================================================================
 
 import streamlit as st
@@ -117,8 +112,8 @@ with st.sidebar:
 # ==========================================
 # Execution Engine Pipeline
 #    This block runs ONLY when the user clicks "Execute Smart Pipeline"
-#    with a file already uploaded. It calls each agent in strict order —
-#    Ingestion -> Domain (AI) -> Cleaning -> Transformation — and appends a
+#    with a file already uploaded. It calls each agent in strict order -
+#    Ingestion -> Domain (AI) -> Cleaning -> Transformation, and appends a
 #    human-readable line to `audit` after every step, which becomes the
 #    "Full Pipeline Execution Audit" table shown on screen and in the PDF.
 #    This audit trail is the platform's core transparency mechanism.
@@ -136,8 +131,8 @@ if run_pipeline_btn and uploaded_file:
         st.session_state['dataset_name'] = fname
         audit.append({"#": 1, "Step": "File Upload", "Detail": f"'{fname}' received ({fmt_label} format)", "Status": "✅ Success"})
 
-        # Phase 1: Ingestion — read the file, drop useless columns, score health.
-        # (calls agents/ingestion_agent.py — see that file for the exact rules)
+        # Phase 1: Ingestion, read the file, drop useless columns, score health.
+        # (calls agents/ingestion_agent.py, see that file for the exact rules)
         status_text.text("Phase 1: Ingesting & Heuristic Checks...")
         progress_bar.progress(10)
         with st.spinner("Agent 1/4: Ingesting & Heuristic Checks..."):
@@ -159,9 +154,9 @@ if run_pipeline_btn and uploaded_file:
             st.session_state['pipeline_stage'] = 'Ingestion Finished'
         progress_bar.progress(25)
 
-        # Phase 2: Domain Context Identification — ask the AI what industry
+        # Phase 2: Domain Context Identification, ask the AI what industry
         # this data is from and which column is the likely prediction target.
-        # (calls agents/domain_agent.py — falls back to simple rules if no AI key is set)
+        # (calls agents/domain_agent.py, falls back to simple rules if no AI key is set)
         status_text.text("Phase 2: OpenAI Context Identification...")
         with st.spinner("Agent 2/4: OpenAI Context Identification..."):
             initial_schema = ingestor.infer_schema(filtered_df)
@@ -172,13 +167,13 @@ if run_pipeline_btn and uploaded_file:
             context = domain.analyze_context(initial_schema, sample_rows)
             st.session_state['domain_context'] = context
             api_used = domain.available
-            audit.append({"#": 6, "Step": "Domain Context Identification", "Detail": f"Industry: '{context.get('industry','N/A')}', Target: '{context.get('target_variable','N/A')}' — via {'OpenAI GPT-4o-mini' if api_used else 'Heuristic Fallback'}", "Status": "✅ Success"})
+            audit.append({"#": 6, "Step": "Domain Context Identification", "Detail": f"Industry: '{context.get('industry','N/A')}', Target: '{context.get('target_variable','N/A')}', via {'OpenAI GPT-4o-mini' if api_used else 'Heuristic Fallback'}", "Status": "✅ Success"})
             st.session_state['pipeline_stage'] = 'Context Resolved'
         progress_bar.progress(50)
 
-        # Phase 3: Rigorous 12-Step Cleaning — standardise names, fix types,
+        # Phase 3: Rigorous 12-Step Cleaning, standardise names, fix types,
         # remove duplicates, fill in missing values, cap outliers.
-        # (calls agents/cleaning_agent.py — every decision here is rule-based, not AI)
+        # (calls agents/cleaning_agent.py, every decision here is rule-based, not AI)
         status_text.text("Phase 3: Deep Cleaning (Missing, Outliers, Bounds)...")
         with st.spinner("Agent 3/4: Deep Cleaning (Missing, Outliers, Bounds)..."):
             cleaner = CleaningAgent()
@@ -220,10 +215,10 @@ if run_pipeline_btn and uploaded_file:
             st.session_state['pipeline_stage'] = 'Cleaning Done'
         progress_bar.progress(85)
 
-        # Phase 4: Transformation for ML — convert categories/dates to numbers
+        # Phase 4: Transformation for ML, convert categories/dates to numbers
         # and scale numeric columns so the data is ready for model training.
         # (calls agents/transformation_agent.py; this is the final automatic
-        # step — machine learning modelling itself only starts when the user
+        # step, machine learning modelling itself only starts when the user
         # clicks "Initiate Algorithm Sweeps" in Tab 3, further down this file)
         status_text.text("Phase 4: Transformation for ML...")
         with st.spinner("Agent 4/4: Feature Enc & Scale..."):
@@ -260,7 +255,7 @@ if run_pipeline_btn and uploaded_file:
 #    Everything below only appears once the pipeline above has produced a
 #    cleaned dataset. The results are organised into 5 tabs, each covering
 #    one stage of the analysis (see the banner comments further down for
-#    each tab). Nothing in this section re-runs the pipeline — it purely
+#    each tab). Nothing in this section re-runs the pipeline, it purely
 #    displays results already stored in st.session_state.
 # ==========================================
 st.markdown("<h1 style='text-align: center; color: #2C3E50;'>JB Data Explorer</h1>", unsafe_allow_html=True)
@@ -304,9 +299,9 @@ else:
                     m_score = mlr_live.get('best_metric_value', 'N/A')
                     m_score_fmt = f"{m_score:.4f}" if isinstance(m_score, float) else m_score
                     if task_t == 'classification':
-                        metric_display = f"{m_name}, F1-Score, ROC-AUC (Classification) — Best Score: {m_score_fmt}"
+                        metric_display = f"{m_name}, F1-Score, ROC-AUC (Classification), Best Score: {m_score_fmt}"
                     else:
-                        metric_display = f"{m_name}, MAE, R\u00b2 (Regression) — Best Score: {m_score_fmt}"
+                        metric_display = f"{m_name}, MAE, R\u00b2 (Regression), Best Score: {m_score_fmt}"
                     st.warning(f"**Best Metric Strategy:** {metric_display}")
                 else:
                     st.warning(f"**Best Metric Strategy:** {ctx.get('evaluation_metric', 'N/A')} *(Run ML Sweep in Phase 3 to populate actual scores)*")
@@ -407,10 +402,9 @@ else:
     # TAB 3: ML Algorithm Suite
     #   Lets the user confirm/change the prediction target, then trains and
     #   compares five machine learning algorithms at once via MLAgent
-    #   (agents/ml_agent.py). Displays the leaderboard and a feature
-    #   importance chart showing which columns most influenced the winning
-    #   model — this is the transparency step referenced throughout the
-    #   accompanying Research Paper and Client Report.
+    #   (agents/ml_agent.py). Shows the leaderboard and a feature importance
+    #   chart, this is the tab that made it possible to catch the target
+    #   leakage issue during testing (see the README).
     # -------------------------------------
     with t3:
         st.subheader("Model Prototyping Leaderboard")
@@ -643,7 +637,7 @@ else:
                     'figure_description': recent.get('figure_description', ''),
                     'data_narrative': recent.get('data_narrative', '')
                 })
-                # clear active slot so we don't accidentally save twice
+                # clear the active slot to avoid saving the same insight twice
                 del st.session_state['_last_nlp'] 
                 st.success("Appended to Report Roster!")
 

@@ -1,24 +1,23 @@
 # ==================================================================================
 #  FILE: utils/pdf_generator.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  This is the "Report Architect" engine — it takes everything the pipeline
-#  has produced so far (data profile, cleaning log, charts, ML leaderboard,
-#  saved natural-language insights, and the AI-written narrative text) and
-#  lays it all out into a single, consulting-style A4 PDF document, complete
-#  with a cover page and a working Table of Contents.
+#  This is the "Report Architect" engine, it takes everything the pipeline
+#  has produced (data profile, cleaning log, charts, ML leaderboard, saved
+#  natural-language insights, AI-written narrative text) and lays it all
+#  out into one consulting-style A4 PDF with a cover page and a working
+#  table of contents.
 #
-#  HOW THE TABLE OF CONTENTS TRICK WORKS (the "two-pass" approach below):
-#  A PDF's page numbers can't be known in advance — you only find out which
-#  page a section landed on AFTER laying out everything before it. So this
-#  function actually builds the ENTIRE report TWICE:
-#    - Pass 1 ("silent" run): builds the whole PDF once just to record
+#  How the table of contents actually works: a PDF's page numbers can't
+#  be known ahead of time, you only find out which page a section landed
+#  on after laying out everything before it. So this function builds the
+#  entire report twice.
+#    - Pass 1 (silent run): builds the whole PDF once just to record
 #      which page number each section ends up on.
-#    - Pass 2 (real run): builds the PDF again, this time already knowing
-#      the correct page numbers, so the Table of Contents on page 2 can
-#      show accurate numbers for sections that appear later in the document.
-#  This is why the function calls itself recursively near the top — that is
-#  intentional, not a bug.
+#    - Pass 2 (real run): builds it again, now knowing the correct page
+#      numbers, so the table of contents shows accurate numbers for
+#      sections that appear later in the document.
+#  That's why this function calls itself further down, it's intentional,
+#  not a bug.
 # ==================================================================================
 
 import datetime
@@ -51,17 +50,17 @@ def generate_pdf(
     _is_second_pass=False,
 ) -> bytes:
     """
-    Generates a professional, template-driven A4 PDF analytics report.
+    Builds a template-driven A4 PDF analytics report.
 
-    Most parameters are simply the results already produced by the other
-    agents (cleaning_logs, ml_results, eda_images, etc.) plus a handful of
+    Most of the parameters are just results already produced by the other
+    agents (cleaning_logs, ml_results, eda_images, etc.) plus a few
     optional AI-written narrative strings (executive_summary,
     cleaning_narrative, ml_interpretation, conclusions_text).
 
-    The `_toc_data` and `_is_second_pass` parameters are INTERNAL — they
-    are never set by app.py. They exist purely to support the "two-pass"
-    Table of Contents trick described above; ignore them when calling this
-    function from elsewhere.
+    `_toc_data` and `_is_second_pass` are internal, app.py never sets
+    them directly. They only exist to support the two-pass table of
+    contents trick described above, safe to ignore when calling this
+    from elsewhere.
     """
     if eda_descriptions is None:
         eda_descriptions = {}
@@ -92,7 +91,7 @@ def generate_pdf(
             _toc_data=dummy_toc, _is_second_pass=True
         )
 
-    final_title = report_title or f"{dataset_name} — Analytical Report"
+    final_title = report_title or f"{dataset_name}, Analytical Report"
 
     # ── Custom PDF class: adds a small running header/footer to every page ──
     class PDF(FPDF):
@@ -170,7 +169,7 @@ def generate_pdf(
 
     def clean_emojis(text):
         # The audit log uses emoji (✅) for on-screen display, but FPDF's
-        # built-in fonts can't render them — strip anything non-ASCII
+        # built-in fonts can't render them, strip anything non-ASCII
         # before it goes into the PDF appendix.
         return text.encode('ascii', 'ignore').decode('ascii')
 
@@ -224,7 +223,7 @@ def generate_pdf(
 
     # ═══════════════════════════════════════════
     # TABLE OF CONTENTS
-    # (populated using the page numbers recorded during Pass 1 — see the
+    # (populated using the page numbers recorded during Pass 1, see the
     # big comment block at the top of this function)
     # ═══════════════════════════════════════════
     pdf.add_page()
@@ -244,7 +243,7 @@ def generate_pdf(
             clean_title = re.sub(r'^\d+\.\s*', '', item['title'])
             table_row([str(i), clean_title, str(item['page'])], widths, aligns=["C", "L", "C"])
     else:
-        # First pass placeholder — keeps this page's content length (and
+        # First pass placeholder, keeps this page's content length (and
         # therefore every later page number) identical between passes.
         pdf.cell(0, 10, "Collecting index data...", ln=True)
 
@@ -455,7 +454,7 @@ def generate_pdf(
 
         section_heading("6. Conclusions & Recommendations")
 
-        boilerplate("The following conclusions are synthesized from the complete analytical pipeline — spanning data profiling, cleaning, exploratory analysis, predictive modeling, and ad-hoc query insights.")
+        boilerplate("The following conclusions are synthesized from the complete analytical pipeline, spanning data profiling, cleaning, exploratory analysis, predictive modeling, and ad-hoc query insights.")
 
         if conclusions_text:
             body_text(conclusions_text)

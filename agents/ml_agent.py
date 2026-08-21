@@ -1,22 +1,18 @@
 # ==================================================================================
 #  FILE: agents/ml_agent.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  This is "Agent 5" — the predictive modelling engine. Once the dataset
-#  has been cleaned and transformed into numbers, this agent automatically
-#  trains SEVERAL different machine learning algorithms on it at once,
-#  compares how well each one performs, and reports back the winner along
-#  with which columns ("features") most influenced its predictions.
+#  Agent 5, the predictive modelling engine. Once the dataset is cleaned
+#  and transformed into numbers, this trains several ML algorithms on it
+#  at once, compares them, and reports the winner along with which
+#  columns influenced its predictions the most.
 #
-#  Rather than a black box that just hands back "the model", the platform
-#  deliberately builds and shows a full leaderboard — this transparency is
-#  what let the research evaluation quickly spot and diagnose an unusually
-#  strong result during testing (see Research Paper, Section 5.2 and
-#  Evaluation, Section 6.1). A concrete, planned strengthening of this
-#  agent is an automatic pre-modelling check that flags any candidate
-#  feature suspiciously derived from the prediction target itself, before
-#  training even begins — turning that diagnostic strength into a built-in
-#  safeguard (see Client Report, Section 5.1, Recommendation 1).
+#  Rather than just handing back "the model", the leaderboard is built
+#  and shown in full, which is what made it possible to spot and diagnose
+#  an unusually strong result during testing (see the README's "A finding
+#  worth calling out" section). A useful next step for this agent is an
+#  automatic pre-modelling check that flags any feature that looks
+#  suspiciously derived from the target itself, before training even
+#  starts, turning that diagnostic strength into a built-in safeguard.
 # ==================================================================================
 
 import pandas as pd
@@ -36,17 +32,14 @@ class MLAgent:
     Now includes an expanded suite of algorithms and comparative leaderboards.
     """
 
-    # ── STEP A: DECIDE WHAT KIND OF PROBLEM THIS IS ──────────────────────
+    # ── decide what kind of problem this is ────────────────────────
     def detect_task(self, df: pd.DataFrame, target_col: str) -> str:
-        """
-        Looks at the column chosen as the prediction target and decides
-        whether this is a CLASSIFICATION problem (predicting one of a
-        limited set of categories, e.g. "will churn" / "won't churn") or a
-        REGRESSION problem (predicting an open-ended numeric value, e.g.
-        "monthly charges"). The rule: if the target is text/boolean, or a
-        number with 20 or fewer distinct values, treat it as classification;
-        otherwise treat it as regression.
-        """
+        """Looks at the target column and decides if this is
+        classification (predicting one of a limited set of categories,
+        e.g. will churn / won't churn) or regression (predicting an
+        open-ended number, e.g. monthly charges). Text/boolean targets,
+        or numeric targets with 20 or fewer distinct values, count as
+        classification, everything else is regression."""
         target = df[target_col]
         dtype = target.dtype
         n_unique = target.nunique()
@@ -55,21 +48,19 @@ class MLAgent:
             return 'classification'
         return 'regression'
 
-    # ── STEP B: EXPLAIN WHICH COLUMNS MATTERED MOST ──────────────────────
+    # ── explain which columns mattered most ─────────────────────────
     def get_feature_importance(self, model, feature_names: list) -> dict:
         """
-        Extracts a ranked list of which input columns had the biggest
-        influence on the winning model's predictions. Tree-based models
-        (Random Forest, XGBoost, Decision Tree) expose this natively via
-        `.feature_importances_`; linear models (Logistic/Linear Regression)
-        expose it via their learned coefficients instead. Returns the top
-        10 most influential features, most important first.
+        Pulls a ranked list of which columns had the biggest influence on
+        the winning model's predictions. Tree-based models (Random
+        Forest, XGBoost, Decision Tree) expose this through
+        .feature_importances_, linear models (Logistic/Linear Regression)
+        expose it through their coefficients instead. Returns the top 10,
+        most important first.
 
-        This output is exactly what allowed the research evaluation to
-        spot that two columns were dominating the model's predictions —
-        demonstrating why this step is kept front-and-centre in the UI
-        rather than buried, and why it is the foundation for the planned
-        automatic leakage check described above.
+        This output is exactly what let the target-leakage issue get
+        caught during testing, so it stays front and centre in the UI
+        rather than buried somewhere.
         """
         importances = None
         if hasattr(model, 'feature_importances_'):
@@ -83,41 +74,38 @@ class MLAgent:
             return sorted_feats
         return {}
 
-    # ── MAIN ENTRY POINT: TRAIN AND COMPARE ALL MODELS ───────────────────
+    # ── main entry point: train and compare all models ─────────────
     def train(self, df: pd.DataFrame, target_col: str) -> dict:
         """
         Splits data, trains competing tree-based and linear algorithms,
         and extracts a leaderboard of the results across multiple metrics.
 
-        Step by step:
-          1. Work out if this is classification or regression (detect_task).
-          2. Keep only numeric/boolean columns as inputs — text columns
+        Rough flow:
+          1. Work out classification vs regression (detect_task).
+          2. Keep only numeric/boolean columns as inputs, text columns
              would already have been converted to numbers by
-             TransformationAgent before this function is ever called.
-          3. Split the data 80% for training / 20% for testing, using a
-             fixed random seed (random_state=42) so results are repeatable.
-          4. Train every candidate algorithm one at a time. If any single
-             algorithm fails for some reason, it's skipped rather than
-             stopping the whole sweep (see the `except Exception: continue`
-             lines below) — this keeps the pipeline resilient.
-          5. Record every model's scores into a "leaderboard" table and
-             keep track of whichever model performed best.
-          6. Extract feature importance from the best model.
+             TransformationAgent before this ever gets called.
+          3. Split 80/20 train/test with a fixed random seed so results
+             are repeatable.
+          4. Train each candidate algorithm one at a time. If one fails,
+             it just gets skipped rather than stopping the whole sweep.
+          5. Record every model's scores into a leaderboard and keep
+             track of the best one.
+          6. Pull feature importance from the winner.
         """
         from sklearn.metrics import accuracy_score, roc_auc_score, mean_absolute_error, r2_score
 
         task_type = self.detect_task(df, target_col)
         df_clean = df.dropna(subset=[target_col]).copy()
 
-        # Only numeric/boolean columns can be fed into these algorithms.
+        # only numeric/boolean columns go into these algorithms
         features = df_clean.drop(columns=[target_col])
         features = features.select_dtypes(include=[np.number, bool])
 
         X = features
         y = df_clean[target_col]
 
-        # Fixed random_state=42 makes the train/test split reproducible —
-        # running the pipeline again on the same data gives the same split.
+        # fixed random_state=42 keeps the split reproducible across runs
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         leaderboard = []
@@ -130,12 +118,10 @@ class MLAgent:
             metric_name = 'F1-Score'
             best_metric_val = -1.0
 
-            # ROC-AUC is only meaningful for a two-outcome (binary) target.
+            # ROC-AUC only really makes sense for a two-outcome target
             is_binary = len(np.unique(y)) == 2
 
-            # The five candidate algorithms trained and compared for every
-            # classification problem, spanning simple/interpretable models
-            # through to more complex ensemble methods.
+            # the five candidates trained and compared for classification
             models = {
                 'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
                 'XGBoost': XGBClassifier(use_label_encoder=False, eval_metric='logloss', random_state=42),
@@ -159,24 +145,21 @@ class MLAgent:
 
                     leaderboard.append({'Model': name, 'Accuracy': acc, 'F1-Score': f1, 'ROC-AUC': roc})
 
-                    # F1-Score (weighted) is the primary metric used to pick
-                    # the "winning" model, since it balances precision and
-                    # recall even when the target classes are imbalanced.
+                    # weighted F1 picks the winner, balances precision and
+                    # recall even with imbalanced classes
                     if f1 > best_metric_val:
                         best_metric_val = f1
                         best_model_name = name
                         best_model_obj = model
                 except Exception:
-                    # If one algorithm errors out, skip it and keep going
-                    # with the rest of the sweep instead of failing entirely.
+                    # skip this algorithm and keep going with the rest
                     continue
 
         else:
             metric_name = 'RMSE'
             best_metric_val = float('inf')
 
-            # The five candidate algorithms trained and compared for every
-            # regression problem.
+            # the five candidates trained and compared for regression
             models = {
                 'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
                 'XGBoost': XGBRegressor(random_state=42),
@@ -196,7 +179,7 @@ class MLAgent:
 
                     leaderboard.append({'Model': name, 'RMSE': rmse, 'MAE': mae, 'R²': r2})
 
-                    # For regression, RMSE (lower is better) picks the winner.
+                    # lower RMSE picks the winner for regression
                     if rmse < best_metric_val:
                         best_metric_val = rmse
                         best_model_name = name
@@ -204,8 +187,7 @@ class MLAgent:
                 except Exception:
                     continue
 
-        # Sort the leaderboard so the best-performing model appears first —
-        # highest F1 first for classification, lowest RMSE first for regression.
+        # sort the leaderboard so the best model shows up first
         if task_type == 'classification':
             leaderboard = sorted(leaderboard, key=lambda x: x['F1-Score'], reverse=True)
         else:

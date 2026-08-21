@@ -1,14 +1,11 @@
 # ==================================================================================
 #  FILE: agents/cleaning_agent.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  This is "Agent 3" in the pipeline. Once the obviously useless columns
-#  have been removed (by ingestion_agent.py), this agent tidies up
-#  everything that remains: messy column names, inconsistent text, missing
-#  values, duplicate rows, and extreme/outlier numbers. Like the ingestion
-#  agent, every decision here follows a FIXED, repeatable rule rather than
-#  an AI judgement call — this is the "deterministic computation" half of
-#  the platform's design (see Research Paper, Section 3.4).
+#  Agent 3 in the pipeline. Once the useless columns are gone (handled by
+#  ingestion_agent.py), this tidies up whatever's left: messy column
+#  names, inconsistent text, missing values, duplicate rows, and extreme
+#  outlier numbers. Same as the ingestion agent, every decision here
+#  follows a fixed rule rather than an AI judgement call.
 # ==================================================================================
 
 import pandas as pd
@@ -25,17 +22,14 @@ class CleaningAgent:
     7. Text cleaning, 8. Inconsistency, 9. Validation.
     """
 
-    # ── STEP 5: STANDARDISE COLUMN NAMES ─────────────────────────────────
+    # ── standardise column names ─────────────────────────────────
     def standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Step 5: Standardize Column Names.
-        Turns messy headers like "Customer ID!" or "Monthly Charges" into a
-        consistent, code-friendly format like "customer_id" / "monthly_charges"
-        — lowercase, spaces become underscores, and any stray punctuation
-        is stripped out."""
+        """Turns messy headers like "Customer ID!" or "Monthly Charges"
+        into a consistent format like "customer_id" / "monthly_charges",
+        lowercase, spaces become underscores, stray punctuation stripped."""
         df_clean = df.copy()
         new_cols = []
         for col in df_clean.columns:
-            # Lowercase, replace spaces with _, remove non-alphanumeric (except _)
             c = str(col).lower().strip()
             c = c.replace(' ', '_')
             c = re.sub(r'[^a-z0-9_]', '', c)
@@ -43,53 +37,50 @@ class CleaningAgent:
         df_clean.columns = new_cols
         return df_clean
 
-    # ── STEPS 4, 7 & 8: FIX DATA TYPES AND CLEAN TEXT ────────────────────
+    # ── fix data types and clean up text ────────────────────────
     def fix_data_types_and_text(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Step 4 & 7: Convert to correct types and clean text strings.
-        Some columns look like text but are actually dates stored as text
-        (e.g. "2023-01-15") — this step detects and converts those to real
-        dates. Any column that's still plain text afterwards gets trimmed
-        of stray whitespace and lower-cased, so that "Male", "male " and
-        "MALE" are all treated as the same value (Step 8: consistency)."""
+        """Some columns look like text but are actually dates stored as
+        strings (e.g. "2023-01-15"), this catches and converts those.
+        Whatever's still text after that gets trimmed and lowercased, so
+        "Male", "male ", and "MALE" all end up treated as the same value."""
         df_clean = df.copy()
 
         for col in df_clean.columns:
             if df_clean[col].dtype == 'object':
-                # Try converting to datetime first
+                # try converting to datetime first
                 sample = df_clean[col].dropna().head(20).astype(str)
-                # Quick heuristic to avoid casting pure text to datetime arbitrarily
+                # quick check to avoid casting random text to datetime
                 if sample.str.match(r'^\d{4}-\d{2}-\d{2}|^\d{2}/\d{2}/\d{4}').any():
                     try:
                         df_clean[col] = pd.to_datetime(df_clean[col], errors='ignore')
                     except Exception:
                         pass
 
-                # If it's still object, clean the text
+                # if it's still object type after that, clean it up
                 if df_clean[col].dtype == 'object':
                     df_clean[col] = df_clean[col].astype(str).str.strip().str.lower()
-                    # Step 8 handle inconsistencies like "male " -> "male", already largely fixed by strip/lower.
+
         return df_clean
 
-    # ── STEP 2: HANDLE MISSING VALUES ────────────────────────────────────
+    # ── handle missing values ────────────────────────────────────
     def handle_missing(self, df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         """
-        Step 2: Missing Values.
-        The rule is simple and explained to the user in plain language:
-          - If MORE than 30% of a column's values are missing, the whole
-            column is dropped — too much is unknown to trust it.
-          - If 30% or LESS is missing, the gaps are filled in ("imputed")
-            using a sensible statistic instead of just deleting rows:
-              * Numeric column, roughly bell-shaped   -> fill with the MEAN
-              * Numeric column, skewed/lopsided        -> fill with the MEDIAN
-                (median is less thrown off by extreme values than mean)
-              * Date column                            -> carry the nearest
+        The rule here is simple:
+          - More than 30% missing in a column: drop the whole column,
+            too much is unknown to trust it.
+          - 30% or less: fill the gaps with something sensible instead of
+            deleting rows:
+              * numeric, roughly bell-shaped   -> fill with the mean
+              * numeric, skewed/lopsided        -> fill with the median
+                (less thrown off by extreme values than the mean)
+              * date column                     -> carry the nearest
                 known date forward/backward
-              * Text/category column                   -> fill with the MODE
-                (the single most common value)
+              * text/category column            -> fill with the mode
+                (most common value)
 
-        Returns the cleaned dataframe plus a dictionary explaining, for
-        every affected column, exactly what was done and why — this
-        justification text is what shows up in the app's audit log.
+        Returns the cleaned dataframe plus a dict explaining what got
+        done to each affected column and why, this text ends up in the
+        app's audit log.
         """
         df_clean = df.copy()
         total_rows = len(df_clean)
@@ -98,7 +89,7 @@ class CleaningAgent:
         for col in df_clean.columns:
             null_count = df_clean[col].isnull().sum()
             if null_count == 0:
-                continue  # nothing missing in this column — skip it
+                continue
 
             null_pct = (null_count / total_rows) * 100
 
@@ -107,9 +98,8 @@ class CleaningAgent:
                 dropped_cols[col] = f"Dropped column entirely due to severe missingness ({null_pct:.1f}% missing, which exceeds the 30% reliability threshold)."
             else:
                 if pd.api.types.is_numeric_dtype(df_clean[col]):
-                    # skew() measures how lopsided the distribution is;
-                    # a value near 0 means roughly symmetric ("normal"),
-                    # a large positive/negative value means it's skewed.
+                    # skew near 0 means roughly symmetric, a big
+                    # positive/negative value means it's lopsided
                     c_skew = skew(df_clean[col].dropna())
                     if pd.isna(c_skew) or abs(c_skew) > 0.5:
                         df_clean[col] = df_clean[col].fillna(df_clean[col].median())
@@ -128,35 +118,31 @@ class CleaningAgent:
 
         return df_clean, dropped_cols
 
-    # ── STEPS 6 & 9: OUTLIER HANDLING AND RANGE VALIDATION ───────────────
+    # ── handle outliers and range validation ─────────────────────
     def handle_outliers_and_ranges(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Step 6 & 9: Winsorize outliers and validate ranges.
-        "Winsorizing" means capping extreme values instead of deleting
-        them — any value far outside the normal range gets pulled in to
-        the nearest reasonable boundary rather than removed, which avoids
-        losing whole rows of otherwise-useful data.
+        Winsorizes outliers instead of deleting them, extreme values get
+        capped at a reasonable boundary rather than being thrown out, so
+        the rest of a row doesn't get lost over one bad number.
 
-        The standard statistical method used here is the IQR (Interquartile
-        Range) rule: values more than 1.5x the IQR below the 25th percentile
-        or above the 75th percentile are treated as outliers and clipped.
+        Uses the standard IQR rule: anything more than 1.5x the
+        interquartile range below the 25th percentile or above the 75th
+        gets treated as an outlier and clipped.
 
-        A small extra safety check also prevents obviously impossible
-        negative values in columns that should never be negative (age,
-        salary, price, amount).
+        Also does a small sanity check on columns that should never be
+        negative (age, salary, price, amount).
         """
         df_out = df.copy()
         numeric_cols = df_out.select_dtypes(include=[np.number]).columns
 
         for col in numeric_cols:
-            # Range validation: absolute heuristics.
-            # If the column name suggests it should never be negative
-            # (age, salary, price, amount), clip anything below zero.
+            # if the column name suggests it should never go negative,
+            # clip anything below zero
             import math
             if 'age' in col or 'salary' in col or 'price' in col or 'amount' in col:
                 df_out[col] = df_out[col].clip(lower=0)
 
-            # Outlier Handling via IQR
+            # IQR outlier handling
             q1 = df_out[col].quantile(0.25)
             q3 = df_out[col].quantile(0.75)
             iqr = q3 - q1
@@ -168,49 +154,45 @@ class CleaningAgent:
 
         return df_out
 
-    # ── STEP 3: REMOVE DUPLICATE ROWS ────────────────────────────────────
+    # ── remove duplicate rows ────────────────────────────────────
     def remove_duplicates(self, df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
-        """Step 3: Remove Duplicate Rows.
-        A duplicate row is one that is identical, cell-for-cell, to another
-        row already in the dataset — these are removed so they don't
-        artificially inflate patterns during analysis or modelling."""
+        """A duplicate row is one that matches another row, cell for
+        cell, exactly. These get removed so they don't inflate patterns
+        during analysis or modelling."""
         initial_len = len(df)
         df_dedup = df.drop_duplicates().copy()
         removed = initial_len - len(df_dedup)
         return df_dedup, removed
 
-    # ── ORCHESTRATOR: RUNS ALL THE ABOVE STEPS IN ORDER ──────────────────
+    # ── runs all the steps above in order ────────────────────────
     def clean(self, df: pd.DataFrame, progress_bar=None, start_pct=0, end_pct=100) -> tuple[pd.DataFrame, dict, int]:
         """
-        Orchestrates the 12-Step pipeline up to step 9, calling each of the
-        cleaning functions above in the correct order and, if a Streamlit
-        progress bar was passed in, updating it after every step so the
-        user can watch the pipeline progress in the UI.
-        Encoding and Scaling (steps 10-11) are delegated to
-        TransformationAgent (see agents/transformation_agent.py), since
-        those steps specifically prepare data for machine learning rather
-        than "cleaning" it in the general sense.
+        Calls each of the cleaning functions above in the right order,
+        and if a progress bar got passed in, updates it after each step
+        so the user can watch it move. Encoding and scaling happen
+        separately in TransformationAgent, since those are specifically
+        about getting data ready for ML rather than "cleaning" it.
         """
         step_size = (end_pct - start_pct) / 5
         current_pct = start_pct
 
-        # Step 5: Standardization
+        # standardise column names
         df_step = self.standardize_columns(df)
         if progress_bar: current_pct += step_size; progress_bar.progress(int(current_pct))
 
-        # Step 4, 7, 8: Type fixing and Text standardization
+        # fix types and clean text
         df_step = self.fix_data_types_and_text(df_step)
         if progress_bar: current_pct += step_size; progress_bar.progress(int(current_pct))
 
-        # Step 3: Duplicate removal
+        # remove duplicates
         df_step, duplicates_removed = self.remove_duplicates(df_step)
         if progress_bar: current_pct += step_size; progress_bar.progress(int(current_pct))
 
-        # Step 2: Missing Values
+        # handle missing values
         df_step, missing_drops = self.handle_missing(df_step)
         if progress_bar: current_pct += step_size; progress_bar.progress(int(current_pct))
 
-        # Step 6 & 9: Outliers & Range Validation
+        # handle outliers and ranges
         df_step = self.handle_outliers_and_ranges(df_step)
         if progress_bar: current_pct += step_size; progress_bar.progress(int(end_pct))
 

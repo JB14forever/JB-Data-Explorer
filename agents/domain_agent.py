@@ -1,19 +1,15 @@
 # ==================================================================================
 #  FILE: agents/domain_agent.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  This is "Agent 2" in the pipeline, and the FIRST place the AI is used.
-#  Once the raw dataset has had its useless columns removed, this agent
-#  looks at the column names and a small sample of rows and asks the AI to
-#  work out, in business terms: what industry is this data from, what is
-#  it trying to predict, and how should that prediction be measured?
+#  Agent 2 in the pipeline, and the first place AI gets used. Once the
+#  useless columns are stripped out, this looks at the column names and a
+#  small sample of rows and asks the AI to work out, in business terms:
+#  what industry is this data from, what's it trying to predict, and how
+#  should that prediction be measured?
 #
-#  IMPORTANT DESIGN NOTE: this agent NEVER calculates any statistics or
-#  numbers itself — it only interprets context (see Research Paper, Section
-#  3.4, "Justification of Choices" table, which explicitly separates
-#  deterministic computation from generative interpretation). If the AI
-#  service is unavailable, a simple rule-based "fallback" guess is used
-#  instead, so the app keeps working either way.
+#  Important: this never calculates any statistics itself, it only
+#  interprets context. If the AI is unavailable, a simple rule-based
+#  guess is used instead so the app keeps working either way.
 # ==================================================================================
 
 import json
@@ -25,9 +21,6 @@ class DomainAgent:
     """
 
     def __init__(self):
-        # Try to get a working AI connection when this agent is created.
-        # `self.available` is checked before every AI call so the rest of
-        # the app can gracefully fall back to heuristics if it's False.
         self.client = get_llm_client()
         self.available = self.client is not None
 
@@ -43,13 +36,10 @@ class DomainAgent:
         }
         """
         if not self.available:
-            # No AI access configured — use the rule-based guess instead.
             return self._fallback_context(schema)
 
-        # This is the instruction ("system prompt") sent to the AI, telling
-        # it exactly what job to do and what shape of answer to return.
-        # Keeping this instruction strict and format-locked is one of the
-        # platform's "guardrails" (see Research Paper, Section 4.2).
+        # the instruction sent to the AI, keeping the format strict so it
+        # always comes back parseable
         system_prompt = """
         You are a Principal Data Scientist advising an enterprise analytics platform.
         You will be provided with a JSON schema of a dataset and a small sample of rows.
@@ -74,10 +64,8 @@ class DomainAgent:
         - Computer Vision: Accuracy, mAP
         """
 
-        # We only send the column SCHEMA (names, types, stats) and a small
-        # SAMPLE of rows — never the entire dataset — to keep the request
-        # small and fast (see the Client Report, Section 7.1, for the
-        # related data-privacy discussion around what leaves the app).
+        # only the column schema and a few sample rows go to the AI,
+        # never the full dataset, to keep the request small and private
         user_prompt = f"SCHEMA: {json.dumps(schema)}\nSAMPLE ROWS: {json.dumps(sample_data, default=str)}"
 
         try:
@@ -87,13 +75,12 @@ class DomainAgent:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.1  # low temperature = more consistent, less "creative" answers
+                temperature=0.1  # low temperature keeps answers consistent
             )
             raw = response.choices[0].message.content.strip()
 
-            # The AI is asked for pure JSON, but sometimes wraps its answer
-            # in markdown code fences (```json ... ```) anyway — strip those
-            # off before trying to parse it.
+            # the AI is asked for pure JSON but sometimes wraps it in
+            # markdown fences anyway, strip those before parsing
             if raw.startswith("```json"):
                 raw = raw[7:]
             if raw.endswith("```"):
@@ -102,19 +89,18 @@ class DomainAgent:
             return json.loads(raw)
 
         except Exception:
-            # If the AI call fails, times out, or returns something that
-            # isn't valid JSON, fall back to the rule-based guess rather
-            # than crashing the pipeline.
+            # AI call failed, timed out, or returned something that isn't
+            # valid JSON, fall back to the rule-based guess instead of
+            # crashing the pipeline
             return self._fallback_context(schema)
 
     def _fallback_context(self, schema: dict) -> dict:
         """
-        Heuristic (rule-based) fallback used when the AI is unavailable.
-        Looks for column names that commonly indicate a prediction target
-        (e.g. containing "churn", "status", "price") and makes a
-        best-effort guess at the problem type from there. This keeps the
-        platform usable even with no AI access configured, just with
-        simpler, less nuanced descriptions.
+        Rule-based backup for when the AI isn't available. Looks for
+        column names that usually indicate a prediction target (e.g.
+        "churn", "status", "price") and makes a best-effort guess from
+        there. Keeps the platform usable with no AI key configured, just
+        with simpler descriptions.
         """
         possible_targets = [c for c in schema.keys() if any(x in str(c).lower() for x in ['target', 'is_', 'status', 'churn', 'price', 'salary', 'outcome'])]
         target = possible_targets[0] if possible_targets else list(schema.keys())[-1]

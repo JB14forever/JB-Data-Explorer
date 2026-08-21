@@ -1,17 +1,15 @@
 # ==================================================================================
 #  FILE: agents/graph_describer.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  Whenever the app draws a distribution chart (histogram) or the
-#  correlation heatmap in the "Exploratory Data Analysis" tab, this agent
-#  writes a short, plain-English paragraph explaining what the chart shows.
-#  Exactly like the other AI agents in this project, it is only ever given
-#  numbers that were ALREADY calculated by pandas/scipy — it interprets and
-#  writes about them, it never calculates them itself.
+#  Whenever the app draws a distribution chart or the correlation heatmap
+#  in the EDA tab, this agent writes a short plain-English paragraph
+#  explaining what it shows. Same rule as the other agents: it only ever
+#  gets numbers that were already calculated by pandas/scipy, it explains
+#  them, it doesn't calculate anything new.
 # ==================================================================================
 
 """
-Graph Description Agent — Generates contextual chart descriptions using LLM.
+Graph Description Agent, Generates contextual chart descriptions using LLM.
 """
 
 import json
@@ -25,15 +23,12 @@ class GraphDescriber:
         self.client = get_llm_client()
         self.available = self.client is not None
 
-    # ── DESCRIBE A SINGLE COLUMN'S DISTRIBUTION CHART ────────────────────
+    # ── describe a single column's distribution chart ────────────
     def describe_distribution(self, df: pd.DataFrame, column: str, domain_context: dict = None) -> str:
-        """
-        Writes a short paragraph about a single column's histogram, using
-        real, pre-calculated statistics (mean, median, spread, skewness,
-        outlier boundaries) as the only source of numbers. If the AI is
-        unavailable, `_fallback_description` produces a simpler, purely
-        template-based sentence instead.
-        """
+        """Writes a short paragraph about a column's histogram, using
+        real, already-calculated stats (mean, median, spread, skewness,
+        outlier boundaries) as the only source of numbers. Falls back to
+        _fallback_description if the AI isn't available."""
         if not self.available:
             return self._fallback_description(df, column)
 
@@ -79,15 +74,12 @@ Cover: axes meaning, distribution shape, central tendency, spread, outliers, bus
         except Exception:
             return self._fallback_description(df, column)
 
-    # ── DESCRIBE THE CORRELATION HEATMAP ─────────────────────────────────
+    # ── describe the correlation heatmap ──────────────────────────
     def describe_heatmap(self, df: pd.DataFrame, domain_context: dict = None) -> str:
-        """
-        Writes a short paragraph about the correlation heatmap, describing
-        which pairs of numeric columns are most strongly related. The
-        correlation values themselves (`corr()`) are computed by pandas —
-        the AI is only given the resulting numbers and asked to explain
-        what they mean in business terms.
-        """
+        """Writes a short paragraph about which pairs of numeric columns
+        are most strongly related on the heatmap. The correlation values
+        (corr()) come from pandas, the AI only gets the resulting numbers
+        and explains what they mean in business terms."""
         if not self.available:
             return "Correlation heatmap showing pairwise Pearson correlations between numeric features."
 
@@ -125,11 +117,11 @@ Cover: what heatmap shows, strongest correlations, feature clusters, target rele
         except Exception:
             return "Correlation heatmap showing pairwise Pearson correlations between numeric features."
 
-    # ── SIMPLE, NON-AI BACKUP DESCRIPTION ────────────────────────────────
+    # ── simple, non-AI backup description ─────────────────────────
     def _fallback_description(self, df: pd.DataFrame, column: str) -> str:
-        """Used only when the AI is unavailable — builds a short,
-        template-based sentence directly from the statistics, so the app
-        still shows something useful rather than an empty box."""
+        """Only used when the AI is unavailable, builds a short
+        template-based sentence straight from the stats, so the app still
+        shows something useful instead of an empty box."""
         col_data = df[column]
         if pd.api.types.is_numeric_dtype(col_data):
             return (f"Distribution of '{column}': mean={col_data.mean():.2f}, median={col_data.median():.2f}, "

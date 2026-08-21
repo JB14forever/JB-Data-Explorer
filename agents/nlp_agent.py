@@ -1,19 +1,15 @@
 # ==================================================================================
 #  FILE: agents/nlp_agent.py
 # ==================================================================================
-#  WHAT THIS FILE DOES (in plain English):
-#  This is the agent behind the "Ask a question in plain English" feature
-#  (Tab 4 of the app). The user types a question like "Show me churn by
-#  contract type", and this agent asks the AI to work out three things:
-#    1. What data transformation is needed to answer it (as pandas code)
-#    2. Which chart type best communicates the answer
-#    3. A written description of the chart and a data-driven narrative
+#  The agent behind the "ask a question in plain English" tab. The user
+#  types something like "Show me churn by contract type", and this asks
+#  the AI to work out three things: what data transformation is needed to
+#  answer it, which chart type communicates it best, and a written
+#  description plus data narrative to go with the chart.
 #
-#  IMPORTANT: the AI is only ever asked to describe the data and choose
-#  chart settings — it is given column statistics that were already
-#  calculated by ordinary pandas code, and it is never asked to invent a
-#  number itself. This separation is the core safeguard discussed in the
-#  Client Report, Section 2.4 ("Data Processing Strategy").
+#  The AI is only ever asked to describe the data and pick chart
+#  settings, it's given column statistics that were already calculated
+#  with pandas, and it's never asked to invent a number itself.
 # ==================================================================================
 
 import json
@@ -40,16 +36,15 @@ class NLPAgent:
         """
         Translates a natural language question into a full chart specification.
 
-        High-level flow:
-          1. Summarise every column's type and basic statistics (min/max/
-             mean for numbers, top values for categories) — NOT the raw
-             data itself, keeping what's sent to the AI small and private.
-          2. Send that summary plus the user's question to the AI, with a
-             very detailed instruction set (the `system_prompt` below)
-             describing exactly which chart types are supported and how
-             to choose between them.
-          3. Parse the AI's JSON answer into a chart specification that
-             app.py can use to actually draw the chart with Plotly.
+        Roughly:
+          1. Summarise every column's type and basic stats (min/max/mean
+             for numbers, top values for categories), not the raw data
+             itself, so what gets sent to the AI stays small and private.
+          2. Send that summary plus the question to the AI, with a
+             detailed instruction set describing which chart types are
+             supported and how to choose between them.
+          3. Parse the AI's JSON answer into a chart spec app.py can use
+             to actually draw the chart with Plotly.
         """
         if not self.available:
             return {
@@ -62,9 +57,7 @@ class NLPAgent:
             }
 
         try:
-            # ── Build a compact statistical summary of every column ──
-            # This is what gives the AI enough context to answer sensibly
-            # without ever seeing the full, potentially sensitive dataset.
+            # build a compact stats summary of every column
             dtypes_info = {}
             stats_info = {}
             for col in columns:
@@ -97,13 +90,9 @@ class NLPAgent:
                 - Business Summary: {domain_context.get('business_summary', 'N/A')}
                 """
 
-            # ── The full instruction set given to the AI ──
-            # This is deliberately very detailed: it lists every supported
-            # chart type, gives explicit rules for choosing 2D vs 3D, and
-            # locks the AI into returning ONLY a specific JSON shape. This
-            # is one of the "guardrails" mentioned in the Research Paper,
-            # Section 4.2 — it stops the AI from inventing unsupported
-            # chart types or returning free-form, hard-to-parse text.
+            # the full instruction set for the AI, kept detailed and
+            # locked into a specific JSON shape so it can't wander off
+            # into unsupported chart types or free-form text
             system_prompt = f"""You are an expert data visualization analyst. The user has a pandas DataFrame `df` with:
 
 COLUMNS AND DTYPES:
@@ -150,7 +139,7 @@ Use a 2D chart in ALL other cases, including:
 SUPPORTED CHART TYPES
 ────────────────────────────────────────
 
-2D CHARTS (default — use unless 3D rules are met):
+2D CHARTS (default, use unless 3D rules are met):
   "bar"        → Categorical comparisons, rankings, counts
   "histogram"  → Single-variable distribution, frequency analysis
   "line"       → Trends over time or ordered sequences
@@ -178,7 +167,7 @@ AXIS AND FORMATTING RULES
 - Avoid returning wide-form DataFrames with mixed data types. If comparing multiple metrics, `melt` the DataFrame into long-form first using pandas.
 
 ────────────────────────────────────────
-STEP-BY-STEP REASONING (internal — do not include in output)
+STEP-BY-STEP REASONING (internal, do not include in output)
 ────────────────────────────────────────
 
 Before producing the JSON, reason through these questions silently:
@@ -224,8 +213,7 @@ Respond ONLY with a valid JSON object. No markdown, no backticks, no explanation
             )
             raw_content = response.choices[0].message.content.strip()
 
-            # Clean up markdown formatting if present (the AI sometimes
-            # wraps its JSON answer in code fences despite being asked not to)
+            # sometimes the AI wraps its JSON answer in code fences anyway
             if raw_content.startswith("```json"):
                 raw_content = raw_content[7:]
             if raw_content.startswith("```"):
@@ -245,8 +233,8 @@ Respond ONLY with a valid JSON object. No markdown, no backticks, no explanation
             }
 
         except Exception as e:
-            # Any failure (AI unreachable, malformed JSON, etc.) is
-            # reported back as a friendly error rather than crashing the app.
+            # AI unreachable, malformed JSON, etc, report it back instead
+            # of crashing the app
             return {
                 "filter_code": None,
                 "chart_type": None,
@@ -257,12 +245,9 @@ Respond ONLY with a valid JSON object. No markdown, no backticks, no explanation
             }
 
     def log_query(self, question: str, response: dict):
-        """
-        Logs the user prompt and agent response to Streamlit session state.
-        This keeps a running history of every question asked during the
-        current session, purely for reference — it is not currently
-        displayed in the UI but is available for future auditing features.
-        """
+        """Logs the user's question and the agent's response to session
+        state, a running history of what got asked during the session.
+        Not shown in the UI right now but kept around for later."""
         if 'query_log' not in st.session_state:
             st.session_state['query_log'] = []
 
