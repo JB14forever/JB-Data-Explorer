@@ -18,7 +18,7 @@
 
 ## 🔗 Live Demo
 
-[Add the deployed Streamlit URL here once available.]
+[JB Data Explorer on Streamlit](https://jb-data-explorer.streamlit.app/)
 
 ## 📖 Overview
 
