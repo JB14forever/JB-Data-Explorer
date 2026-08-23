@@ -80,7 +80,7 @@ class MLAgent:
         Splits data, trains competing tree-based and linear algorithms,
         and extracts a leaderboard of the results across multiple metrics.
 
-        Rough flow:
+        Steps flow:
           1. Work out classification vs regression (detect_task).
           2. Keep only numeric/boolean columns as inputs, text columns
              would already have been converted to numbers by
