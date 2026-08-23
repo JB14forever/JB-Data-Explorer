@@ -2,14 +2,14 @@
 #  FILE: agents/ingestion_agent.py
 # ==================================================================================
 #  Agent 1 in the pipeline, the first thing that touches a dataset the
-#  user uploads. Three jobs:
+#  user uploads. Three tasks:
 #    1. Read the uploaded file (CSV or Excel) into a table.
-#    2. Automatically drop columns that are obviously useless, like a
+#    2. Automatically drop columns that are not useful for analysis, like a
 #       customer ID column, or a column where every row is identical.
 #    3. Work out a rough Data Health Score describing how clean the file
 #       already is.
 #
-#  Everything here is rule-based, not AI. Running it twice on the same
+#  Everything here is rule-based. Running it twice on the same
 #  file gives the same result every time, which matters for keeping the
 #  pipeline reproducible.
 # ==================================================================================
@@ -36,9 +36,6 @@ class IngestionAgent:
             df = pd.read_excel(io.BytesIO(file.getvalue()))
             return df
         else:
-            # not every CSV uses a comma as the separator, some use a
-            # semicolon or tab, so sniff the first couple kilobytes to
-            # guess the delimiter instead of assuming comma every time
             content = file.getvalue().decode('utf-8', errors='replace')
             sample = content[:2048]
             try:
@@ -51,7 +48,7 @@ class IngestionAgent:
             df = pd.read_csv(str_io, sep=delimiter)
             return df
 
-    # ── drop the obviously useless columns ──────────────────────────
+    # drop the obviously useless columns 
     def filter_primary_features(self, df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         """
         Removes three kinds of columns that carry no real analytical
