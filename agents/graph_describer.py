@@ -3,9 +3,7 @@
 # ==================================================================================
 #  Whenever the app draws a distribution chart or the correlation heatmap
 #  in the EDA tab, this agent writes a short plain-English paragraph
-#  explaining what it shows. Same rule as the other agents: it only ever
-#  gets numbers that were already calculated by pandas/scipy, it explains
-#  them, it doesn't calculate anything new.
+#  explaining what it shows. 
 # ==================================================================================
 
 """
