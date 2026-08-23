@@ -5,11 +5,6 @@
 #  that needs AI help imports this instead of connecting to a provider on
 #  its own, so if the provider ever needs to change, it only needs to
 #  change here.
-#
-#  Note: this file never does any of the actual number crunching. It only
-#  gets used for language tasks, writing summaries, explaining charts,
-#  reading free-text questions. All the real calculations happen with
-#  normal Python libraries elsewhere (pandas, scikit-learn, etc.).
 # ==================================================================================
 
 """
