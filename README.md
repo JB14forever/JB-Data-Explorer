@@ -16,7 +16,7 @@
 
 ## 🔗 Live Demo
 
-[JB Data Explorer on Streamlit](https://jb-data-explorer.streamlit.app/)
+[JB Data Explorer on Streamlit : https://jb-data-explorer.streamlit.app/](https://jb-data-explorer.streamlit.app/)
 
 ## 📖 Overview
 
