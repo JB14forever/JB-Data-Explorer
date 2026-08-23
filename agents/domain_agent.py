@@ -2,7 +2,7 @@
 #  FILE: agents/domain_agent.py
 # ==================================================================================
 #  Agent 2 in the pipeline, and the first place AI gets used. Once the
-#  useless columns are stripped out, this looks at the column names and a
+#  columns are stripped out, this looks at the column names and a
 #  small sample of rows and asks the AI to work out, in business terms:
 #  what industry is this data from, what's it trying to predict, and how
 #  should that prediction be measured?
