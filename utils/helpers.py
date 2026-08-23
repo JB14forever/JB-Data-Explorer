@@ -2,8 +2,7 @@
 #  FILE: utils/helpers.py
 # ==================================================================================
 #  Small reusable helper functions used by app.py: drawing a badge,
-#  building a chart, converting a chart to an image. Keeps app.py from
-#  being cluttered with repetitive chart-styling code. None of this does
+#  building a chart, converting a chart to an image. None of this does
 #  any statistical analysis, it only displays numbers that were already
 #  calculated elsewhere.
 # ==================================================================================
