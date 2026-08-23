@@ -10,7 +10,7 @@
 
 <br/>
 
-> **Author:** Jagannath Ravindra Barik (Student No. A00046418) · A00046418@mytudublin.ie
+> **Author:** Jagannath Ravindra Barik\n Student No. A00046418\n · Email: A00046418@mytudublin.ie
 > This repository holds the code and data submission that goes with the
 > Research Paper and Client Report for the same project. See
 > [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) for how the code
