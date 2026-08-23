@@ -10,11 +10,9 @@
 
 <br/>
 
-> **Author:** Jagannath Ravindra Barik\n Student No. A00046418\n · Email: A00046418@mytudublin.ie
-> This repository holds the code and data submission that goes with the
-> Research Paper and Client Report for the same project. See
-> [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) for how the code
-> lines up with the findings in those two documents.
+> **Author:** Jagannath Ravindra Barik<br>
+> **Student No:** A00046418<br>
+> **Email:** A00046418@mytudublin.ie
 
 ## 🔗 Live Demo
 
@@ -22,7 +20,7 @@
 
 ## 📖 Overview
 
-JB Data Explorer takes a raw tabular dataset and runs it through a full
+The Data Explorer platform takes a raw tabular dataset and runs it through a full
 analytics workflow, profiling, cleaning, exploring, modelling, and
 narrating, in about 90 seconds, logging and justifying every automated
 decision along the way.
@@ -78,7 +76,7 @@ prediction task would never have access to.
 
 A tool that hid its reasoning would have just reported the perfect score
 as a win. Because the pipeline logs its decisions and shows what drove
-each prediction, the issue surfaced on its own. That's now a concrete next
+each prediction, the issue surfaced on its own. That's a concrete next
 step rather than an open question: an automatic check that flags
 target-derived features before training starts, building on the
 feature-importance code that already exists. Details are in
@@ -132,8 +130,7 @@ jb-data-explorer/
 ```
 
 Every file has a short comment block at the top explaining what it's for,
-and functions are commented as they go, so someone who doesn't code
-should still be able to follow along stage by stage.
+and functions are commented as they go, to enhance the code readability.
 
 ---
 
@@ -191,7 +188,7 @@ It should open automatically at `http://localhost:8501`.
 
 ## ☁️ Deploying on Streamlit Community Cloud
 
-The app is set up to deploy as-is on [Streamlit Community Cloud](https://streamlit.io/cloud) (free tier):
+The app is set up to deploy as-is on [Streamlit Community Cloud](https://streamlit.io/cloud) (free tier) and below are the steps listed in order to deloy:
 
 1. Sign in at [share.streamlit.io](https://share.streamlit.io) with the GitHub account that owns this repository.
 2. Click **New app**, pick this repository and the `main` branch, and set the main file path to `app.py`.
@@ -201,7 +198,7 @@ The app is set up to deploy as-is on [Streamlit Community Cloud](https://streaml
    ```
 4. Click **Deploy**. The build installs everything from `requirements.txt` and the app should be live in a couple of minutes.
 
-Once deployed, add the live URL at the top of this README and in the repository's About section.
+Once deployed, it should be ready to use in action.
 
 ---
 
@@ -236,7 +233,7 @@ contains no records relating to real, identifiable individuals.
 - **Data license:** released by IBM for sample and educational use
 
 The app itself isn't limited to this dataset, it takes any structured CSV
-or Excel file a user uploads and runs the full pipeline on it. The Telco
+or Excel file a user uploads and runs the full pipeline on it. The IBM Telco Customer Churn
 dataset is just the one used to produce the results in the written
 outputs, so it's included here to keep those results reproducible.
 
@@ -255,7 +252,7 @@ outputs, so it's included here to keep those results reproducible.
 ## 🎓 Academic Integrity
 
 Submitted as part of the DATA 5010 MSc Data Analytics Research Project at
-Technological University Dublin. All code was written by the student
+Technological University Dublin. All code was written by the author
 named above as part of this project. Third-party libraries are used under
 their own respective licenses and listed in
 [Dependencies & Libraries](#-dependencies--libraries).
