@@ -1,17 +1,11 @@
 # Project Summary: Bridging the Code to the Written Outputs
 
-**Project:** JB Data Explorer, an Agentic AI Analytics Pipeline for Decision Support
+**Project:** An Agentic AI Analytics Pipeline for Decision Support
 **Author:** Jagannath Ravindra Barik (A00046418), TU Dublin, DATA 5010 MSc Data Analytics Research Project
-
-This page exists for anyone reading this repository alongside the written
-submissions. The code, the Research Paper, and the Client Report are one
-project told three ways, not three separate pieces of work, and this page
-maps the two written outputs onto the code that produced their results so
-the story stays consistent end to end.
 
 ## What the platform does
 
-JB Data Explorer takes a raw tabular dataset (CSV or Excel) and runs it
+The data explorer platform takes a raw tabular dataset (CSV or Excel) and runs it
 through the full analytics workflow: profiling, cleaning, exploratory
 analysis, predictive modelling, natural-language querying, and report
 generation, in roughly 90 seconds, with a written justification kept for
