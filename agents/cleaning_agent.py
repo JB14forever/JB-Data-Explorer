@@ -1,8 +1,8 @@
 # ==================================================================================
 #  FILE: agents/cleaning_agent.py
 # ==================================================================================
-#  Agent 3 in the pipeline. Once the useless columns are gone (handled by
-#  ingestion_agent.py), this tidies up whatever's left: messy column
+#  Agent 3 in the pipeline. Once the columns which are less useful in analysis are removed (handled by
+#  ingestion_agent.py), this agent tidies up whatever's left: messy column
 #  names, inconsistent text, missing values, duplicate rows, and extreme
 #  outlier numbers. Same as the ingestion agent, every decision here
 #  follows a fixed rule rather than an AI judgement call.
@@ -24,7 +24,7 @@ class CleaningAgent:
 
     # ── standardise column names ─────────────────────────────────
     def standardize_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Turns messy headers like "Customer ID!" or "Monthly Charges"
+        """Turns headers like "Customer ID!" or "Monthly Charges"
         into a consistent format like "customer_id" / "monthly_charges",
         lowercase, spaces become underscores, stray punctuation stripped."""
         df_clean = df.copy()
@@ -123,7 +123,7 @@ class CleaningAgent:
         """
         Winsorizes outliers instead of deleting them, extreme values get
         capped at a reasonable boundary rather than being thrown out, so
-        the rest of a row doesn't get lost over one bad number.
+        the rest of a row doesn't get lost over one outlier.
 
         Uses the standard IQR rule: anything more than 1.5x the
         interquartile range below the 25th percentile or above the 75th
@@ -156,9 +156,6 @@ class CleaningAgent:
 
     # ── remove duplicate rows ────────────────────────────────────
     def remove_duplicates(self, df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
-        """A duplicate row is one that matches another row, cell for
-        cell, exactly. These get removed so they don't inflate patterns
-        during analysis or modelling."""
         initial_len = len(df)
         df_dedup = df.drop_duplicates().copy()
         removed = initial_len - len(df_dedup)
