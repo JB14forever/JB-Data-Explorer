@@ -1,6 +1,6 @@
 # Project Summary: Bridging the Code to the Written Outputs
 
-**Project:** An Agentic AI Analytics Pipeline for Decision Support
+**Project:** An Agentic AI Analytics Pipeline for Decision Support<br>
 **Author:** Jagannath Ravindra Barik (A00046418), TU Dublin, DATA 5010 MSc Data Analytics Research Project
 
 ## What the platform does
