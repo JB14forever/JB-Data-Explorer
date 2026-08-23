@@ -7,14 +7,6 @@
 #
 #     Upload file -> Ingestion -> Domain (AI) -> Cleaning -> Transformation
 #     -> [user-triggered] ML Modelling -> NLP Q&A (AI) -> PDF Report
-#
-#  There's no actual data-science logic in this file, no cleaning rules,
-#  no model training code, all of that lives in agents/ and utils/. This
-#  file just displays things, remembers state between reruns, and calls
-#  the right agent when a button gets clicked.
-#
-#  Search for the "# ---" banner comments below to jump to a section
-#  (e.g. "TAB 1: Profile & Context") without reading top to bottom.
 # ==================================================================================
 
 import streamlit as st
