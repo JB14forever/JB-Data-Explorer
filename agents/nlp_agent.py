@@ -36,7 +36,7 @@ class NLPAgent:
         """
         Translates a natural language question into a full chart specification.
 
-        Roughly:
+        Steps:
           1. Summarise every column's type and basic stats (min/max/mean
              for numbers, top values for categories), not the raw data
              itself, so what gets sent to the AI stays small and private.
